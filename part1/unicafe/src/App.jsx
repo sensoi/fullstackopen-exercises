@@ -1,54 +1,34 @@
 import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import './App.css'
 
-const Button = ({ onClick, text }) => (
-  <button onClick={onClick}>{text}</button>
-)
-
-const StatisticLine = ({ text, value }) => (
-  <tr>
-    <td>{text}</td>
-    <td>{value}</td>
-  </tr>
-)
-
-const Statistics = ({ good, neutral, bad }) => {
-  const total = good + neutral + bad
-  if (total === 0) {
-    return <p>No feedback given</p>
-  }
-
-  const average = (good - bad) / total
-  const positive = (good / total) * 100
+function App() {
+  const [count, setCount] = useState(0)
 
   return (
-    <table>
-      <tbody>
-        <StatisticLine text="good" value={good} />
-        <StatisticLine text="neutral" value={neutral} />
-        <StatisticLine text="bad" value={bad} />
-        <StatisticLine text="all" value={total} />
-        <StatisticLine text="average" value={average.toFixed(1)} />
-        <StatisticLine text="positive" value={positive.toFixed(1) + ' %'} />
-      </tbody>
-    </table>
-  )
-}
-
-const App = () => {
-  const [good, setGood] = useState(0)
-  const [neutral, setNeutral] = useState(0)
-  const [bad, setBad] = useState(0)
-
-  return (
-    <div>
-      <h1>give feedback</h1>
-      <Button onClick={() => setGood(good + 1)} text="good" />
-      <Button onClick={() => setNeutral(neutral + 1)} text="neutral" />
-      <Button onClick={() => setBad(bad + 1)} text="bad" />
-
-      <h1>statistics</h1>
-      <Statistics good={good} neutral={neutral} bad={bad} />
-    </div>
+    <>
+      <div>
+        <a href="https://vite.dev" target="_blank">
+          <img src={viteLogo} className="logo" alt="Vite logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+      </div>
+      <h1>Vite + React</h1>
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+        <p>
+          Edit <code>src/App.jsx</code> and save to test HMR
+        </p>
+      </div>
+      <p className="read-the-docs">
+        Click on the Vite and React logos to learn more
+      </p>
+    </>
   )
 }
 
