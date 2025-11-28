@@ -1,7 +1,23 @@
+require('dotenv').config()
+
+// Mongoose connection
+const mongoose = require('mongoose')
+mongoose.set('strictQuery', false)
+
+console.log('connecting to MongoDB...')
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('connected to MongoDB')
+  })
+  .catch((error) => {
+    console.log('error connecting to MongoDB:', error.message)
+  })
+
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const path = require('path')
+const Person = require('./models/person')
 
 const app = express()
 
@@ -11,10 +27,9 @@ const allowedOrigins = [
   'http://localhost:3000'    // optional, CRA dev
 ]
 
-// restricted CORS
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true) // allow tools like curl/postman
+    if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
@@ -29,53 +44,93 @@ app.use(morgan('dev'))
 // serve frontend build (dist) if present
 app.use(express.static(path.join(__dirname, 'dist')))
 
-// fake DB
-let persons = [
-  { id: 1, name: 'Aria', number: '12345' },
-  { id: 2, name: 'Ben', number: '67890' }
-]
+// ----- routes using MongoDB -----
 
-// routes
-app.get('/api/persons', (req, res) => {
-  res.json(persons)
+// GET all persons
+app.get('/api/persons', (req, res, next) => {
+  Person.find({})
+    .then(persons => {
+      res.json(persons)
+    })
+    .catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(p => p.id === id)
-  if (person) return res.json(person)
-  res.status(404).end()
+// GET one person by id
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
-  const body = req.body
+// POST new person
+app.post('/api/persons', (req, res, next) => {
+  const { name, number } = req.body
 
-  if (!body.name || !body.number) {
+  if (!name || !number) {
     return res.status(400).json({ error: 'name or number missing' })
   }
 
-  if (persons.find(p => p.name === body.name)) {
-    return res.status(400).json({ error: 'name must be unique' })
-  }
+  // ensure uniqueness (simple check)
+  Person.findOne({ name })
+    .then(existing => {
+      if (existing) {
+        return res.status(400).json({ error: 'name must be unique' })
+      }
 
-  const id = Math.floor(Math.random() * 1000000)
-  const newPerson = { id, name: body.name, number: body.number }
-  persons = persons.concat(newPerson)
-  res.status(201).json(newPerson)
+      const person = new Person({ name, number })
+      return person.save()
+        .then(savedPerson => {
+          res.status(201).json(savedPerson)
+        })
+    })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  persons = persons.filter(p => p.id !== id)
-  res.status(204).end()
+// UPDATE person (PUT)
+app.put('/api/persons/:id', (req, res, next) => {
+  const { name, number } = req.body
+  const updated = { name, number }
+
+  Person.findByIdAndUpdate(req.params.id, updated, {
+    new: true,
+    runValidators: true,
+    context: 'query'
+  })
+    .then(result => {
+      if (result) {
+        res.json(result)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => next(error))
 })
 
-app.get('/info', (req, res) => {
-  res.send(`<p>Phonebook has info for ${persons.length} people</p><p>${new Date()}</p>`)
+// DELETE person
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndDelete(req.params.id)
+    .then(() => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
+// INFO route
+app.get('/info', (req, res, next) => {
+  Person.countDocuments({})
+    .then(count => {
+      res.send(`<p>Phonebook has info for ${count} people</p><p>${new Date()}</p>`)
+    })
+    .catch(error => next(error))
+})
 
-// fallback: send React app for any GET request that is NOT an API route
+// fallback for React app
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
     return res.sendFile(path.join(__dirname, 'dist', 'index.html'))
@@ -83,12 +138,27 @@ app.use((req, res, next) => {
   next()
 })
 
-
 // unknown endpoint handler
 app.use((req, res) => {
   res.status(404).send({ error: 'unknown endpoint' })
 })
 
+// error handling middleware (must be after routes)
+app.use((error, req, res, next) => {
+  console.error(error.name, error.message)
+
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
+    return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+
+  if (error.message === 'Not allowed by CORS') {
+    return res.status(401).json({ error: 'CORS origin not allowed' })
+  }
+
+  next(error)
+})
 
 // start server
 const PORT = process.env.PORT || 3001
