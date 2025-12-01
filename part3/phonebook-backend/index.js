@@ -20,14 +20,13 @@ const Person = require('./models/person')
 
 const app = express()
 
-
 const allowedOrigins = [
-  'http://localhost:5173',   
-  'http://localhost:3000'    
+  'http://localhost:5173',
+  'http://localhost:3000'
 ]
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) {
       callback(null, true)
@@ -40,38 +39,35 @@ app.use(cors({
 app.use(express.json())
 app.use(morgan('dev'))
 
-
+// Serve static frontend from /dist if present
 app.use(express.static(path.join(__dirname, 'dist')))
 
+// ----- API routes -----
+
+// GET all persons
 app.get('/api/persons', (req, res, next) => {
   Person.find({})
-    .then(persons => {
-      res.json(persons)
-    })
+    .then(persons => res.json(persons))
     .catch(error => next(error))
 })
 
-
+// GET one person by id
 app.get('/api/persons/:id', (req, res, next) => {
   Person.findById(req.params.id)
     .then(person => {
-      if (person) {
-        res.json(person)
-      } else {
-        res.status(404).end()
-      }
+      if (person) res.json(person)
+      else res.status(404).end()
     })
     .catch(error => next(error))
 })
 
-
+// POST new person
 app.post('/api/persons', (req, res, next) => {
   const { name, number } = req.body
 
   if (!name || !number) {
     return res.status(400).json({ error: 'name or number missing' })
   }
-
 
   Person.findOne({ name })
     .then(existing => {
@@ -81,14 +77,12 @@ app.post('/api/persons', (req, res, next) => {
 
       const person = new Person({ name, number })
       return person.save()
-        .then(savedPerson => {
-          res.status(201).json(savedPerson)
-        })
+        .then(savedPerson => res.status(201).json(savedPerson))
     })
     .catch(error => next(error))
 })
 
-
+// UPDATE person (PUT)
 app.put('/api/persons/:id', (req, res, next) => {
   const { name, number } = req.body
   const updated = { name, number }
@@ -99,11 +93,8 @@ app.put('/api/persons/:id', (req, res, next) => {
     context: 'query'
   })
     .then(result => {
-      if (result) {
-        res.json(result)
-      } else {
-        res.status(404).end()
-      }
+      if (result) res.json(result)
+      else res.status(404).end()
     })
     .catch(error => next(error))
 })
@@ -111,9 +102,7 @@ app.put('/api/persons/:id', (req, res, next) => {
 // DELETE person
 app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndDelete(req.params.id)
-    .then(() => {
-      res.status(204).end()
-    })
+    .then(() => res.status(204).end())
     .catch(error => next(error))
 })
 
@@ -126,26 +115,30 @@ app.get('/info', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// fallback for React app
-app.use((req, res, next) => {
+// ----- Fallback for non-API GET requests: serve index.html -----
+// This must come after API routes and after static middleware.
+app.get('*', (req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
     return res.sendFile(path.join(__dirname, 'dist', 'index.html'))
   }
-  next()
+  // for non-GET or API paths, let the unknown endpoint handler deal with it
+  res.status(404).send({ error: 'unknown endpoint' })
 })
 
-// unknown endpoint handler
+// Unknown endpoint handler for anything not handled above
 app.use((req, res) => {
   res.status(404).send({ error: 'unknown endpoint' })
 })
 
-// error handling middleware (must be after routes)
+// Error handling middleware (must be last)
 app.use((error, req, res, next) => {
   console.error(error.name, error.message)
 
   if (error.name === 'CastError' && error.kind === 'ObjectId') {
     return res.status(400).send({ error: 'malformatted id' })
-  } else if (error.name === 'ValidationError') {
+  }
+
+  if (error.name === 'ValidationError') {
     return res.status(400).json({ error: error.message })
   }
 
