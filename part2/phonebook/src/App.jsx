@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 const baseUrl = 'https://fso-v54q.onrender.com/api/persons'
-
 
 const Filter = ({ filter, handleFilterChange }) => (
   <div>
@@ -10,11 +9,10 @@ const Filter = ({ filter, handleFilterChange }) => (
   </div>
 )
 
-
-const PersonForm = ({ 
-  newName, handleNameChange, 
-  newNumber, handleNumberChange, 
-  addPerson 
+const PersonForm = ({
+  newName, handleNameChange,
+  newNumber, handleNumberChange,
+  addPerson
 }) => (
   <form onSubmit={addPerson}>
     <div>
@@ -29,31 +27,31 @@ const PersonForm = ({
   </form>
 )
 
-
 const Persons = ({ persons }) => (
   <ul>
-    {persons.map(person => 
-      <li key={person.name}>{person.name} {person.number}</li>
+    {persons.map(person =>
+      <li key={person.id}>{person.name} {person.number}</li>
     )}
   </ul>
 )
 
-
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456' },
-    { name: 'Ada Lovelace', number: '39-44-5323523' },
-    { name: 'Dan Abramov', number: '12-43-234345' },
-    { name: 'Mary Poppendieck', number: '39-23-6423122' }
-  ])
-
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
 
-  const handleNameChange = (event) => setNewName(event.target.value)
-  const handleNumberChange = (event) => setNewNumber(event.target.value)
-  const handleFilterChange = (event) => setFilter(event.target.value)
+  useEffect(() => {
+    axios
+      .get(baseUrl)
+      .then(response => {
+        setPersons(response.data)
+      })
+      .catch(err => {
+        console.error(err)
+        alert('Failed to load data from server')
+      })
+  }, [])
 
   const addPerson = (event) => {
     event.preventDefault()
@@ -62,36 +60,45 @@ const App = () => {
 
     if (!trimmedName || !trimmedNumber) return
 
-    const alreadyExists = persons.some(person => person.name === trimmedName)
-    const alreadyExistsNum = persons.some(person => person.number === trimmedNumber)
+    const exists = persons.some(p => p.name === trimmedName)
+    const existsNum = persons.some(p => p.number === trimmedNumber)
 
-    if (alreadyExists || alreadyExistsNum) {
-      alert(`${trimmedName} / ${trimmedNumber} is already added to phonebook`)
+    if (exists || existsNum) {
+      alert(`${trimmedName} / ${trimmedNumber} is already added`)
       return
     }
 
     const newPerson = { name: trimmedName, number: trimmedNumber }
-    setPersons(persons.concat(newPerson))
-    setNewName('')
-    setNewNumber('')
+
+    axios
+      .post(baseUrl, newPerson)
+      .then(response => {
+        setPersons(persons.concat(response.data))
+        setNewName('')
+        setNewNumber('')
+      })
+      .catch(err => {
+        console.error(err)
+        alert('Failed to add person')
+      })
   }
 
-  const personsToShow = persons.filter(person =>
-    person.name.toLowerCase().includes(filter.toLowerCase())
+  const personsToShow = persons.filter(p =>
+    p.name.toLowerCase().includes(filter.toLowerCase())
   )
 
   return (
     <div>
       <h2>Phonebook</h2>
 
-      <Filter filter={filter} handleFilterChange={handleFilterChange} />
+      <Filter filter={filter} handleFilterChange={(e) => setFilter(e.target.value)} />
 
       <h3>Add a new</h3>
-      <PersonForm 
+      <PersonForm
         newName={newName}
-        handleNameChange={handleNameChange}
+        handleNameChange={(e) => setNewName(e.target.value)}
         newNumber={newNumber}
-        handleNumberChange={handleNumberChange}
+        handleNumberChange={(e) => setNewNumber(e.target.value)}
         addPerson={addPerson}
       />
 
