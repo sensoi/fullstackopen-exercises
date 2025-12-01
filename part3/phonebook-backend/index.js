@@ -20,19 +20,22 @@ const Person = require('./models/person')
 
 const app = express()
 
+// CORS - allow deployed origin + localhost (safe for this exercise)
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://fso-v54q.onrender.com'
 ]
 
+// Simple CORS middleware using the allowed list
 app.use(cors({
   origin: function (origin, callback) {
+    // allow requests with no origin (e.g. curl, server-to-server)
     if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
+      return callback(null, true)
     }
+    return callback(new Error('Not allowed by CORS'))
   }
 }))
 
@@ -145,11 +148,10 @@ app.use((error, req, res, next) => {
   }
 
   next(error)
+})
 
-  // start server
+// start server
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
-})
-
 })
