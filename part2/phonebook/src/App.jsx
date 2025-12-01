@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import axios from 'axios'
+
+const baseUrl = 'https://fso-v54q.onrender.com/api/persons'
 
 
 const Filter = ({ filter, handleFilterChange }) => (
