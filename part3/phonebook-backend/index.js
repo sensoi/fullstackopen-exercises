@@ -115,14 +115,12 @@ app.get('/info', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// ----- Fallback for non-API GET requests: serve index.html -----
-// This must come after API routes and after static middleware.
-app.get('*', (req, res) => {
+// Serve React frontend for any non-API GET request
+app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
     return res.sendFile(path.join(__dirname, 'dist', 'index.html'))
   }
-  // for non-GET or API paths, let the unknown endpoint handler deal with it
-  res.status(404).send({ error: 'unknown endpoint' })
+  next()
 })
 
 // Unknown endpoint handler for anything not handled above
@@ -147,10 +145,4 @@ app.use((error, req, res, next) => {
   }
 
   next(error)
-})
-
-// start server
-const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
 })
