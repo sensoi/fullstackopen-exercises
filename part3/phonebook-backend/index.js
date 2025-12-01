@@ -1,6 +1,5 @@
 require('dotenv').config()
 
-// Mongoose connection
 const mongoose = require('mongoose')
 mongoose.set('strictQuery', false)
 
@@ -21,10 +20,10 @@ const Person = require('./models/person')
 
 const app = express()
 
-// middleware
+
 const allowedOrigins = [
-  'http://localhost:5173',   // Vite dev
-  'http://localhost:3000'    // optional, CRA dev
+  'http://localhost:5173',   
+  'http://localhost:3000'    
 ]
 
 app.use(cors({
@@ -41,12 +40,9 @@ app.use(cors({
 app.use(express.json())
 app.use(morgan('dev'))
 
-// serve frontend build (dist) if present
+
 app.use(express.static(path.join(__dirname, 'dist')))
 
-// ----- routes using MongoDB -----
-
-// GET all persons
 app.get('/api/persons', (req, res, next) => {
   Person.find({})
     .then(persons => {
@@ -55,7 +51,7 @@ app.get('/api/persons', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// GET one person by id
+
 app.get('/api/persons/:id', (req, res, next) => {
   Person.findById(req.params.id)
     .then(person => {
@@ -68,7 +64,7 @@ app.get('/api/persons/:id', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// POST new person
+
 app.post('/api/persons', (req, res, next) => {
   const { name, number } = req.body
 
@@ -76,7 +72,7 @@ app.post('/api/persons', (req, res, next) => {
     return res.status(400).json({ error: 'name or number missing' })
   }
 
-  // ensure uniqueness (simple check)
+
   Person.findOne({ name })
     .then(existing => {
       if (existing) {
@@ -92,7 +88,7 @@ app.post('/api/persons', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// UPDATE person (PUT)
+
 app.put('/api/persons/:id', (req, res, next) => {
   const { name, number } = req.body
   const updated = { name, number }
