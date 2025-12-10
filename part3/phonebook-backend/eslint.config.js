@@ -1,10 +1,10 @@
 ﻿module.exports = [
-  // ignore built assets and deps
-  { ignores: ["dist/**", "node_modules/**"] },
-
-  // base config for backend JS (flat config)
   {
-    files: ["**/*.js"],
+    ignores: ["dist/**", "node_modules/**"],
+  },
+
+  {
+    files: ["*.js", "models/**/*.js"],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: "script",
@@ -12,12 +12,13 @@
         process: "readonly",
         __dirname: "readonly",
         __filename: "readonly",
-        module: "writable",
+        module: "readonly",
         require: "readonly",
         console: "readonly",
-        setImmediate: "readonly"
+        setImmediate: "readonly",
       }
     },
     rules: {}
   }
 ];
+  
