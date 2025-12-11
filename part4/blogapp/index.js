@@ -1,0 +1,24 @@
+const express = require('express')
+const app = express()
+const mongoose = require('mongoose')
+const config = require('./utils/config')
+
+mongoose.set('strictQuery', false)
+
+console.log('Connecting to', config.MONGODB_URI)
+
+mongoose.connect(config.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB')
+  })
+  .catch((error) => {
+    console.log('Error connecting to MongoDB:', error.message)
+  })
+
+app.use(express.json())
+
+app.get('/', (req, res) => {
+  res.send('Blog API running')
+})
+
+module.exports = app
