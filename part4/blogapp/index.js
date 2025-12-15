@@ -2,6 +2,8 @@ const express = require('express')
 const app = express()
 const mongoose = require('mongoose')
 const config = require('./utils/config')
+const blogsRouter = require('./controllers/blogs')
+
 
 mongoose.set('strictQuery', false)
 
@@ -16,6 +18,8 @@ mongoose.connect(config.MONGODB_URI)
   })
 
 app.use(express.json())
+
+app.use('/api/blogs', blogsRouter)
 
 app.get('/', (req, res) => {
   res.send('Blog API running')
