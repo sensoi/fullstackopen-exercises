@@ -1,34 +1,25 @@
 const express = require('express')
 const app = express()
-app.use(express.json())
 const mongoose = require('mongoose')
 const config = require('./utils/config')
+
 const blogsRouter = require('./controllers/blogs')
 const usersRouter = require('./controllers/users')
-app.use('/api/users', usersRouter)
-
-
-
-
-mongoose.set('strictQuery', false)
-
-console.log('Connecting to', config.MONGODB_URI)
-
-mongoose.connect(config.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB')
-  })
-  .catch((error) => {
-    console.log('Error connecting to MongoDB:', error.message)
-  })
+const loginRouter = require('./controllers/login')
+const middleware = require('./utils/middleware')
 
 app.use(express.json())
 
-app.use('/api/blogs', blogsRouter)
+// token always extracted
+app.use(middleware.tokenExtractor)
 
-app.get('/', (req, res) => {
-  res.send('Blog API running')
-})
+// userExtractor ONLY for blogs
+app.use('/api/blogs', middleware.userExtractor, blogsRouter)
+
+app.use('/api/users', usersRouter)
+app.use('/api/login', loginRouter)
+
+mongoose.set('strictQuery', false)
+mongoose.connect(config.MONGODB_URI)
 
 module.exports = app
-    
