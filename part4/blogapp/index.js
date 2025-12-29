@@ -7,6 +7,10 @@ const blogsRouter = require('./controllers/blogs')
 const usersRouter = require('./controllers/users')
 const loginRouter = require('./controllers/login')
 const middleware = require('./utils/middleware')
+const cors = require('cors')
+
+app.use(cors())
+
 
 app.use(express.json())
 
