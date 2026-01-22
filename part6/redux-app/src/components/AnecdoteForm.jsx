@@ -1,23 +1,35 @@
-import { useDispatch } from 'react-redux'
-import { createAnecdote } from '../reducers/anecdoteReducer'
-import { showNotification } from '../reducers/notificationReducer'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createAnecdote } from '../services/anecdotes'
+import { useNotification } from '../NotificationContext'
 
 const AnecdoteForm = () => {
-  const dispatch = useDispatch()
+  const queryClient = useQueryClient()
+  const [, dispatch] = useNotification()
 
-  const addAnecdote = (event) => {
+  const newAnecdoteMutation = useMutation({
+    mutationFn: createAnecdote,
+    onSuccess: (newAnecdote) => {
+      queryClient.invalidateQueries({ queryKey: ['anecdotes'] })
+      dispatch({ type: 'SHOW', payload: `added '${newAnecdote.content}'` })
+      setTimeout(() => dispatch({ type: 'CLEAR' }), 5000)
+    },
+    onError: (error) => {
+      dispatch({ type: 'SHOW', payload: error.message })
+      setTimeout(() => dispatch({ type: 'CLEAR' }), 5000)
+    },
+  })
+
+  const onCreate = (event) => {
     event.preventDefault()
     const content = event.target.anecdote.value
     event.target.anecdote.value = ''
-
-    dispatch(createAnecdote(content))
-    dispatch(showNotification(`added '${content}'`, 5))
+    newAnecdoteMutation.mutate(content)
   }
 
   return (
-    <form onSubmit={addAnecdote}>
+    <form onSubmit={onCreate}>
       <input name="anecdote" />
-      <button type="submit">add</button>
+      <button type="submit">create</button>
     </form>
   )
 }

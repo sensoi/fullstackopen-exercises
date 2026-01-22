@@ -1,26 +1,37 @@
-import axios from 'axios'
-
 const baseUrl = 'http://localhost:3001/anecdotes'
 
-const getAll = async () => {
-  const response = await axios.get(baseUrl)
-  return response.data
+export const getAnecdotes = async () => {
+  const response = await fetch(baseUrl)
+  if (!response.ok) {
+    throw new Error('Server error')
+  }
+  return response.json()
 }
 
-const createNew = async (content) => {
-  const response = await axios.post(baseUrl, {
-    content,
-    votes: 0,
+export const createAnecdote = async (content) => {
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, votes: 0 }),
   })
-  return response.data
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error)
+  }
+
+  return response.json()
 }
 
-const update = async (anecdote) => {
-  const response = await axios.put(
-    `${baseUrl}/${anecdote.id}`,
-    anecdote
-  )
-  return response.data
-}
+export const voteAnecdote = async (anecdote) => {
+  const response = await fetch(`${baseUrl}/${anecdote.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...anecdote,
+      votes: anecdote.votes + 1,
+    }),
+  })
 
-export default { getAll, createNew, update }
+  return response.json()
+}

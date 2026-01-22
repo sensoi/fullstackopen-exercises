@@ -12,8 +12,13 @@
     },
     {
       "content": "hello",
-      "votes": 0,
+      "votes": 1,
       "id": "ruS6y_w"
+    },
+    {
+      "content": "hello",
+      "votes": 0,
+      "id": "378BbNX"
     }
   ]
 }
