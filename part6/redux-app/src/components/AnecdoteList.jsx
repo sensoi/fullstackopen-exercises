@@ -1,10 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAnecdotes, voteAnecdote } from '../services/anecdotes'
 import { useNotification } from '../NotificationContext'
+import { Link } from 'react-router-dom'
 
 const AnecdoteList = ({ filter }) => {
   const queryClient = useQueryClient()
   const [, dispatch] = useNotification()
+
+
+  const safeFilter = filter ? filter.toLowerCase() : ''
 
   const result = useQuery({
     queryKey: ['anecdotes'],
@@ -26,24 +30,25 @@ const AnecdoteList = ({ filter }) => {
   }
 
   if (result.isError) {
-    return (
-      <div>
-        anecdote service not available due to problems in server
-      </div>
-    )
+    return <div>anecdote service not available due to server problems</div>
   }
 
   const anecdotes = result.data
     .filter(a =>
-      a.content.toLowerCase().includes(filter.toLowerCase())
-    )
+  a.content &&
+  a.content.toLowerCase().includes(safeFilter)
+)
     .sort((a, b) => b.votes - a.votes)
 
   return (
     <div>
       {anecdotes.map(anecdote => (
         <div key={anecdote.id}>
-          <div>{anecdote.content}</div>
+          <div>
+            <Link to={`/anecdotes/${anecdote.id}`}>
+              {anecdote.content}
+            </Link>
+          </div>
           <div>
             has {anecdote.votes}
             <button onClick={() => voteMutation.mutate(anecdote)}>

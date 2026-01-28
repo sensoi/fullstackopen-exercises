@@ -1,19 +1,43 @@
+import { Routes, Route } from 'react-router-dom'
 import { useState } from 'react'
-import AnecdoteForm from './components/AnecdoteForm'
+
 import AnecdoteList from './components/AnecdoteList'
-import Notification from './components/Notification'
+import AnecdoteForm from './components/AnecdoteForm'
 import Filter from './components/Filter'
+import Notification from './components/Notification'
+import Menu from './components/Menu'
+import Anecdote from './components/Anecdote'
+
 
 const App = () => {
   const [filter, setFilter] = useState('')
 
   return (
     <div>
-      <h3>Anecdote app</h3>
+      <Menu />
       <Notification />
-      <Filter filter={filter} setFilter={setFilter} />
-      <AnecdoteForm />
-      <AnecdoteList filter={filter} />
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <Filter filter={filter} setFilter={setFilter} />
+              <AnecdoteList filter={filter} />
+            </>
+          }
+        />
+
+        <Route
+          path="/create"
+          element={<AnecdoteForm />}
+        />
+
+        <Route 
+        path="/anecdotes/:id" 
+        element={<Anecdote />} />
+
+      </Routes>
     </div>
   )
 }
