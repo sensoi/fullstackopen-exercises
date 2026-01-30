@@ -1,16 +1,20 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
+// GET all blogs
 blogsRouter.get('/', async (req, res) => {
   const blogs = await Blog.find({}).populate('user', {
     username: 1,
-    name: 1
+    name: 1,
   })
   res.json(blogs)
 })
 
+// CREATE blog
 blogsRouter.post('/', async (req, res) => {
   const user = req.user
+
   if (!user) {
     return res.status(401).json({ error: 'token missing or invalid' })
   }
@@ -24,13 +28,22 @@ blogsRouter.post('/', async (req, res) => {
     author: req.body.author,
     url: req.body.url,
     likes: req.body.likes || 0,
-    user: user._id
+    user: user._id,
   })
 
   const savedBlog = await blog.save()
+
+  // 🔑 reliably link blog to user
+  await User.findByIdAndUpdate(
+    user._id,
+    { $push: { blogs: savedBlog._id } },
+    { new: true }
+  )
+
   res.status(201).json(savedBlog)
 })
 
+// DELETE blog
 blogsRouter.delete('/:id', async (req, res) => {
   const user = req.user
   if (!user) {
@@ -38,7 +51,9 @@ blogsRouter.delete('/:id', async (req, res) => {
   }
 
   const blog = await Blog.findById(req.params.id)
-  if (!blog) return res.status(404).end()
+  if (!blog) {
+    return res.status(404).end()
+  }
 
   if (blog.user.toString() !== user._id.toString()) {
     return res.status(401).json({ error: 'only creator can delete' })
@@ -48,6 +63,7 @@ blogsRouter.delete('/:id', async (req, res) => {
   res.status(204).end()
 })
 
+// LIKE blog
 blogsRouter.put('/:id', async (req, res) => {
   const updatedBlog = await Blog.findByIdAndUpdate(
     req.params.id,
@@ -56,5 +72,25 @@ blogsRouter.put('/:id', async (req, res) => {
   )
   res.json(updatedBlog)
 })
+
+// ADD COMMENT to blog
+blogsRouter.post('/:id/comments', async (req, res) => {
+  const { comment } = req.body
+
+  if (!comment) {
+    return res.status(400).json({ error: 'comment missing' })
+  }
+
+  const blog = await Blog.findById(req.params.id)
+  if (!blog) {
+    return res.status(404).end()
+  }
+
+  blog.comments = blog.comments.concat(comment)
+  const updatedBlog = await blog.save()
+
+  res.status(201).json(updatedBlog)
+})
+
 
 module.exports = blogsRouter

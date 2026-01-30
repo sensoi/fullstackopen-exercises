@@ -1,160 +1,214 @@
-  import { useEffect, useState } from 'react'
-  import blogService from './services/blogs'
-  import loginService from './services/login'
-  import Notification from './components/Notification'
-  import Blog from './components/Blog'
-  import BlogForm from './components/BlogForm'
+import { useEffect, useState } from 'react'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { Routes, Route } from 'react-router-dom'
 
-  const App = () => {
-    const [blogs, setBlogs] = useState([])
-    const [username, setUsername] = useState('')
-    const [password, setPassword] = useState('')
-    const [user, setUser] = useState(null)
+import { useUser } from './components/UserContext'
+import { useNotification } from './components/NotificationContext'
 
-    const [notification, setNotification] = useState(null)
-    const [notificationType, setNotificationType] = useState(null)
+import blogService from './services/blogs'
+import loginService from './services/login'
 
-    // Fetch blogs
-    useEffect(() => {
-      blogService.getAll().then(blogs => {
-        setBlogs(blogs)
+import Notification from './components/Notification'
+import Blog from './components/Blog'
+import BlogForm from './components/BlogForm'
+import Users from './components/Users'
+import User from './components/User'
+import BlogView from './components/BlogView'
+
+
+const App = () => {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+
+  const [user, userDispatch] = useUser()
+  const [, dispatch] = useNotification()
+  const queryClient = useQueryClient()
+
+  // FETCH BLOGS
+  const blogsQuery = useQuery({
+    queryKey: ['blogs'],
+    queryFn: blogService.getAll,
+  })
+
+  const blogs = blogsQuery.data || []
+
+  // LOGIN PERSISTENCE
+  useEffect(() => {
+    const loggedUserJSON = window.localStorage.getItem('loggedBlogappUser')
+    if (loggedUserJSON) {
+      const user = JSON.parse(loggedUserJSON)
+      userDispatch({ type: 'SET_USER', payload: user })
+      blogService.setToken(user.token)
+    }
+  }, [userDispatch])
+
+  // CREATE BLOG
+  const createBlogMutation = useMutation({
+    mutationFn: blogService.create,
+    onSuccess: (newBlog) => {
+      queryClient.invalidateQueries({ queryKey: ['blogs'] })
+
+      dispatch({
+        type: 'SHOW',
+        payload: {
+          message: `a new blog ${newBlog.title} added`,
+          type: 'success',
+        },
       })
-    }, [])
 
-    // Restore logged-in user
-    useEffect(() => {
-      const loggedUserJSON = window.localStorage.getItem('loggedBlogappUser')
-      if (loggedUserJSON) {
-        const user = JSON.parse(loggedUserJSON)
-        setUser(user)
-        blogService.setToken(user.token)
-      }
-    }, [])
+      setTimeout(() => dispatch({ type: 'CLEAR' }), 5000)
+    },
+  })
 
-    const handleLogin = async (event) => {
-      event.preventDefault()
+  // LIKE BLOG
+  const likeBlogMutation = useMutation({
+    mutationFn: ({ id, updatedBlog }) =>
+      blogService.update(id, updatedBlog),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blogs'] })
+    },
+  })
 
-      try {
-        const user = await loginService.login({
-          username,
-          password,
-        })
+  // DELETE BLOG
+  const deleteBlogMutation = useMutation({
+    mutationFn: blogService.remove,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blogs'] })
 
-        window.localStorage.setItem(
-          'loggedBlogappUser',
-          JSON.stringify(user)
-        )
+      dispatch({
+        type: 'SHOW',
+        payload: {
+          message: 'blog removed',
+          type: 'success',
+        },
+      })
 
-        blogService.setToken(user.token)
-        setUser(user)
-        setUsername('')
-        setPassword('')
-      } catch (error) {
-        setNotification('wrong username or password')
-        setNotificationType('error')
-        setTimeout(() => {
-          setNotification(null)
-        }, 5000)
-      }
+      setTimeout(() => dispatch({ type: 'CLEAR' }), 5000)
+    },
+  })
+
+  // HANDLERS
+  const handleLogin = async (event) => {
+    event.preventDefault()
+    try {
+      const user = await loginService.login({ username, password })
+      window.localStorage.setItem(
+        'loggedBlogappUser',
+        JSON.stringify(user)
+      )
+      blogService.setToken(user.token)
+      userDispatch({ type: 'SET_USER', payload: user })
+      setUsername('')
+      setPassword('')
+    } catch (error) {
+      dispatch({
+        type: 'SHOW',
+        payload: {
+          message: 'wrong username or password',
+          type: 'error',
+        },
+      })
+      setTimeout(() => dispatch({ type: 'CLEAR' }), 5000)
     }
-
-    // ✅ FIXED: accepts blog object, not event
-    const addBlog = async (blogObject) => {
-      const returnedBlog = await blogService.create(blogObject)
-      setBlogs(blogs.concat(returnedBlog))
-
-      setNotification(`a new blog ${returnedBlog.title} added`)
-      setNotificationType('success')
-      setTimeout(() => {
-        setNotification(null)
-      }, 5000)
-    }
-
-    const likeBlog = async (blog) => {
-      const updatedBlog = {
-        ...blog,
-        likes: blog.likes + 1,
-        user: blog.user?.id || blog.user || user.id
-      }
-
-      const returnedBlog = await blogService.update(blog.id, updatedBlog)
-      setBlogs(blogs.map(b => b.id === blog.id ? returnedBlog : b))
-    }
-
-    const deleteBlog = async (blog) => {
-      const ok = window.confirm(`Remove blog ${blog.title}?`)
-      if (!ok) return
-
-      await blogService.remove(blog.id)
-      setBlogs(blogs.filter(b => b.id !== blog.id))
-
-      setNotification(`blog ${blog.title} removed`)
-      setNotificationType('success')
-      setTimeout(() => {
-        setNotification(null)
-      }, 5000)
-    }
-
-    return (
-      <div className="container">
-        <Notification
-          message={notification}
-          type={notificationType}
-        />
-
-        {user === null ? (
-          <div>
-            <h2>log in to application</h2>
-
-            <form onSubmit={handleLogin}>
-              <div>
-                username
-                <input
-                  value={username}
-                  onChange={({ target }) => setUsername(target.value)}
-                />
-              </div>
-              <div>
-                password
-                <input
-                  type="password"
-                  value={password}
-                  onChange={({ target }) => setPassword(target.value)}
-                />
-              </div>
-              <button type="submit">login</button>
-            </form>
-          </div>
-        ) : (
-          <div>
-            <p>
-              {user.name} logged in
-              <button onClick={() => {
-                window.localStorage.removeItem('loggedBlogappUser')
-                setUser(null)
-              }}>
-                logout
-              </button>
-            </p>
-
-            <h2>create new</h2>
-            <BlogForm createBlog={addBlog} />
-          </div>
-        )}
-
-        <h2>blogs</h2>
-
-        {blogs.map(blog => (
-          <Blog
-            key={blog.id}
-            blog={blog}
-            user={user}
-            likeBlog={likeBlog}
-            deleteBlog={deleteBlog}
-          />
-        ))}
-      </div>
-    )
   }
 
-  export default App
+  const addBlog = (blogObject) => {
+    createBlogMutation.mutate(blogObject)
+  }
+
+  const likeBlog = (blog) => {
+    const updatedBlog = {
+      ...blog,
+      likes: blog.likes + 1,
+      user: blog.user?.id || blog.user,
+    }
+
+    likeBlogMutation.mutate({
+      id: blog.id,
+      updatedBlog,
+    })
+  }
+
+  const deleteBlog = (blog) => {
+    if (!window.confirm(`Remove blog ${blog.title}?`)) return
+    deleteBlogMutation.mutate(blog.id)
+  }
+
+  if (blogsQuery.isLoading) {
+    return <div>loading blogs...</div>
+  }
+
+  return (
+    <div>
+      <Notification />
+
+      {/* LOGIN / LOGOUT UI (always visible) */}
+      {user === null ? (
+        <form onSubmit={handleLogin}>
+          <div>
+            username
+            <input
+              value={username}
+              onChange={({ target }) => setUsername(target.value)}
+            />
+          </div>
+          <div>
+            password
+            <input
+              type="password"
+              value={password}
+              onChange={({ target }) => setPassword(target.value)}
+            />
+          </div>
+          <button type="submit">login</button>
+        </form>
+      ) : (
+        <div>
+          <p>
+            {user.name} logged in
+            <button
+              onClick={() => {
+                window.localStorage.removeItem('loggedBlogappUser')
+                userDispatch({ type: 'CLEAR_USER' })
+              }}
+            >
+              logout
+            </button>
+          </p>
+
+          <BlogForm createBlog={addBlog} />
+        </div>
+      )}
+
+      {/* ROUTES DECIDE THE VIEW */}
+      <Routes>
+        <Route path="/users/:id" element={<User />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/blogs/:id" element={<BlogView />} />
+        <Route
+          path="/"
+          element={
+            <>
+              <h2>blogs</h2>
+              {blogs.map((blog) => (
+                <Blog
+                  key={blog.id}
+                  blog={blog}
+                  user={user}
+                  likeBlog={likeBlog}
+                  deleteBlog={deleteBlog}
+                />
+              ))}
+            </>
+          }
+        />
+      </Routes>
+    </div>
+  )
+}
+
+export default App

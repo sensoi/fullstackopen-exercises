@@ -8,16 +8,11 @@ test('renders title and author, but not url or likes by default', () => {
     author: 'Sai',
     url: 'http://example.com',
     likes: 10,
-    user: { username: 'sai', id: '123' }
+    user: { username: 'sai', id: '123' },
   }
 
   render(
-    <Blog
-      blog={blog}
-      user={null}
-      likeBlog={() => {}}
-      deleteBlog={() => {}}
-    />
+    <Blog blog={blog} user={null} likeBlog={() => {}} deleteBlog={() => {}} />,
   )
 
   expect(screen.getByText('Testing React apps — Sai')).toBeDefined()
@@ -31,16 +26,11 @@ test('shows url and likes when view button is clicked', async () => {
     author: 'Sai',
     url: 'http://example.com',
     likes: 10,
-    user: { username: 'sai', id: '123' }
+    user: { username: 'sai', id: '123' },
   }
 
   render(
-    <Blog
-      blog={blog}
-      user={null}
-      likeBlog={() => {}}
-      deleteBlog={() => {}}
-    />
+    <Blog blog={blog} user={null} likeBlog={() => {}} deleteBlog={() => {}} />,
   )
 
   const user = userEvent.setup()
@@ -57,7 +47,7 @@ test('clicking like twice calls event handler twice', async () => {
     author: 'Sai',
     url: 'http://example.com',
     likes: 0,
-    user: { username: 'sai', id: '123' }
+    user: { username: 'sai', id: '123' },
   }
 
   const mockLikeHandler = vi.fn()
@@ -68,7 +58,7 @@ test('clicking like twice calls event handler twice', async () => {
       user={null}
       likeBlog={mockLikeHandler}
       deleteBlog={() => {}}
-    />
+    />,
   )
 
   const user = userEvent.setup()
@@ -82,4 +72,3 @@ test('clicking like twice calls event handler twice', async () => {
 
   expect(mockLikeHandler).toHaveBeenCalledTimes(2)
 })
-
