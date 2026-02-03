@@ -2,22 +2,37 @@ import { useState } from 'react'
 import { useMutation } from '@apollo/client'
 import { ADD_BOOK, ALL_BOOKS } from '../queries'
 
-const NewBook = ({ show }) => {
+const NewBook = ({ show, notify }) => { 
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [published, setPublished] = useState('')
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
 
-  const [addBook] = useMutation(ADD_BOOK, {
+const [addBook] = useMutation(ADD_BOOK, {
   update: (cache, response) => {
-    const addedBook = response.data.addBook
+  const addedBook = response.data.addBook
 
-    cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {
-      return {
-        allBooks: allBooks.concat(addedBook),
-      }
+    // 1. Update ALL books (no filter)
+    cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => ({
+      allBooks: allBooks.concat(addedBook),
+    }))
+
+    // 2. Update each genre-specific cache
+    addedBook.genres.forEach(genre => {
+      cache.updateQuery(
+        {
+          query: ALL_BOOKS,
+          variables: { genre },
+        },
+        ({ allBooks }) => ({
+          allBooks: allBooks.concat(addedBook),
+        })
+      )
     })
+  },
+    onError: (error) => {
+    notify(error.graphQLErrors[0].message)
   },
 })
 
@@ -41,6 +56,7 @@ const NewBook = ({ show }) => {
     setPublished('')
     setGenres([])
     setGenre('')
+    notify(`added ${title}`)
   }
 
   const addGenre = () => {
