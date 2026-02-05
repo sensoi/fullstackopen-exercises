@@ -1,9 +1,11 @@
-POST http://localhost:3001/api/patients
+POST http://localhost:3001/api/patients/d2773336-f723-11e9-8f0b-362b9e155667/entries
 Content-Type: application/json
 
 {
-  "name": "John Doe",
-  "dateOfBirth": "1999-12-01",
-  "ssn": "123-45-2931",
-  "gender": "male",
+  "type": "HealthCheck",
+  "description": "Yearly control visit",
+  "date": "2024-01-01",
+  "specialist": "Dr. House",
+  "healthCheckRating": 1,
+  "diagnosisCodes": ["S03.5"]
 }

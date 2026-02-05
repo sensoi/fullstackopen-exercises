@@ -1,5 +1,5 @@
-import { Patient, Gender } from "../types";
-  
+import { Gender, Patient } from "../types";
+
 const patients: Patient[] = [
   {
     id: "d2773336-f723-11e9-8f0b-362b9e155667",
@@ -7,15 +7,17 @@ const patients: Patient[] = [
     dateOfBirth: "1986-07-09",
     ssn: "090786-122X",
     gender: Gender.Male,
-    occupation: "New york city cop"
+    occupation: "New york city cop",
+    entries: []
   },
   {
-    id: "d2773598-f723-11e9-8f0b-362b9e155668",
-    name: "Jane McClane",
-    dateOfBirth: "1986-07-09",
-    ssn: "090786-123X",
+    id: "d2773598-f723-11e9-8f0b-362b9e155667",
+    name: "Mary Poppendieck",
+    dateOfBirth: "1979-01-30",
+    ssn: "300179-77A",
     gender: Gender.Female,
-    occupation: "New york city cop"
+    occupation: "Engineer",
+    entries: []
   }
 ];
 
