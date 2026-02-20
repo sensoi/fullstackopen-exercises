@@ -1,38 +1,35 @@
-require('dotenv').config()
 const express = require('express')
-const { Client } = require('pg')
-
 const app = express()
+
+const { PORT } = require('./util/config')
+const { connectToDatabase } = require('./util/db')
+
+const blogsRouter = require('./controllers/blogs')
+
 app.use(express.json())
+app.use('/api/blogs', blogsRouter)
 
-const client = new Client({
-  connectionString: process.env.DATABASE_URL
-})
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
 
-client.connect()
+  if (error.code === '23502') {
+    return res.status(400).json({ error: 'missing required field' })
+  }
 
-app.get('/api/blogs', async (req, res) => {
-  const result = await client.query('SELECT * FROM blogs')
-  res.json(result.rows)
-})
+  if (error.code === '22P02') {
+    return res.status(400).json({ error: 'invalid input' })
+  }
 
-app.post('/api/blogs', async (req, res) => {
-  const { author, url, title, likes } = req.body
+  res.status(400).json({ error: 'something went wrong' })
+}
 
-  const result = await client.query(
-    'INSERT INTO blogs (author, url, title, likes) VALUES ($1, $2, $3, $4) RETURNING *',
-    [author, url, title, likes || 0]
-  )
+app.use(errorHandler)
 
-  res.json(result.rows[0])
-})
+const start = async () => {
+  await connectToDatabase()
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+  })
+}
 
-app.delete('/api/blogs/:id', async (req, res) => {
-  await client.query('DELETE FROM blogs WHERE id = $1', [req.params.id])
-  res.status(204).end()
-})
-
-const PORT = 3001
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+start()
