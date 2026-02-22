@@ -5,11 +5,13 @@ const app = express()
 
 const { connectToDatabase, pool } = require('./util/db')
 
+const readingListsRouter = require('./controllers/readinglists')
 const blogsRouter = require('./controllers/blogs')
 const usersRouter = require('./controllers/users')
 const loginRouter = require('./controllers/login')
 
 app.use(express.json())
+app.use('/api/readinglists', readingListsRouter)
 
 // Health check
 app.get('/', (req, res) => {

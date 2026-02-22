@@ -1,0 +1,9 @@
+ALTER TABLE blogs
+ADD COLUMN year INTEGER;
+
+ALTER TABLE blogs
+ADD CONSTRAINT blogs_year_check
+CHECK (
+  year >= 1991
+  AND year <= EXTRACT(YEAR FROM CURRENT_DATE)
+);

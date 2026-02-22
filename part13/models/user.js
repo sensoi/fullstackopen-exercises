@@ -11,7 +11,6 @@ const create = async ({ username, name, password_hash }) => {
   return result.rows[0]
 }
 
-
 const findAll = async () => {
   const result = await pool.query(`
     SELECT 
@@ -62,6 +61,17 @@ const findByUsername = async (username) => {
   return result.rows[0]
 }
 
+const findById = async (id) => {
+  const result = await pool.query(
+    `SELECT *
+     FROM users
+     WHERE id = $1`,
+    [id]
+  )
+
+  return result.rows[0]
+}
+
 const updateName = async (username, name) => {
   const result = await pool.query(
     `UPDATE users
@@ -78,5 +88,6 @@ module.exports = {
   create,
   findAll,
   findByUsername,
+  findById,
   updateName
 }

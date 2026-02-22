@@ -1,9 +1,10 @@
 const router = require('express').Router()
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
-const User = require('../models/user')
+const { SECRET } = require('../util/config')
 
-const SECRET = process.env.SECRET || 'SECRET_KEY'
+const User = require('../models/user')
+const Session = require('../models/session')
 
 router.post('/', async (req, res, next) => {
   try {
@@ -11,12 +12,24 @@ router.post('/', async (req, res, next) => {
 
     const user = await User.findByUsername(username)
 
-    const passwordCorrect =
-      user === undefined
-        ? false
-        : await bcrypt.compare(password, user.password_hash)
+    if (!user) {
+      return res.status(401).json({
+        error: 'invalid username or password'
+      })
+    }
 
-    if (!(user && passwordCorrect)) {
+    if (user.disabled) {
+      return res.status(403).json({
+        error: 'user account disabled'
+      })
+    }
+
+    const passwordCorrect = await bcrypt.compare(
+      password,
+      user.password_hash
+    )
+
+    if (!passwordCorrect) {
       return res.status(401).json({
         error: 'invalid username or password'
       })
@@ -28,6 +41,9 @@ router.post('/', async (req, res, next) => {
     }
 
     const token = jwt.sign(userForToken, SECRET)
+
+    // Store session in DB
+    await Session.create(user.id, token)
 
     res.json({
       token,
